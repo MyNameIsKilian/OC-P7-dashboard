@@ -1,37 +1,40 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import time
 
-st.title('My bank app')
-# streamlit run app.py
+st.title('Prêt à dépenser : Scoring Crédit')
+st.image('./images/logo-app.png')
 
 DATE_COLUMN = 'date/time'
 DATA_URL = ('https://s3-us-west-2.amazonaws.com/'
          'streamlit-demo-data/uber-raw-data-sep14.csv.gz')
 
-@st.cache
-def load_data(nrows):
-    data = pd.read_csv(DATA_URL, nrows=nrows)
-    lowercase = lambda x: str(x).lower()
-    data.rename(lowercase, axis='columns', inplace=True)
-    data[DATE_COLUMN] = pd.to_datetime(data[DATE_COLUMN])
-    return data
+h1 = st.subheader('Load data')
+with st.spinner(text='In progress'):
+  time.sleep(3)
+  st.success('Done')
+h2 = st.subheader("Select user's id to predict (selectbox or input)")
+st.selectbox('', [1,2,3])
+st.button('Find user')
 
-data_load_state = st.text('Loading data...')
-data = load_data(10000)
-data_load_state.text("Done! (using st.cache_data)")
+# Permettre de visualiser des informations descriptives relatives à un client (via un système de filtre)
+h3 = st.subheader("Load user and display it, add filter")
+df = pd.DataFrame([range(20)], columns=[f"col {i}" for i in range(20)])
+st.dataframe(df)
 
-if st.checkbox('Show raw data'):
-    st.subheader('Raw data')
-    st.write(data)
+h4 = st.subheader("Run prediction")
+st.button('Predict')
 
-st.subheader('Number of pickups by hour')
-hist_values = np.histogram(data[DATE_COLUMN].dt.hour, bins=24, range=(0,24))[0]
-st.bar_chart(hist_values)
+# Permettre de visualiser le score et l’interprétation de ce score pour chaque client de façon intelligible pour une personne non experte en data science
+h5 = st.subheader("Display results")
+st.text("Granted or Refused")
+st.text("Score")
 
-# Some number in the range 0-23
-hour_to_filter = st.slider('hour', 0, 23, 17)
-filtered_data = data[data[DATE_COLUMN].dt.hour == hour_to_filter]
+st.subheader("Display SHAP values")
+st.line_chart(df.iloc[0,:])
 
-st.subheader('Map of all pickups at %s:00' % hour_to_filter)
-st.map(filtered_data)
+# Permettre de comparer les informations descriptives relatives à un client à l’ensemble des clients ou à un groupe de clients similaires
+h7 = st.subheader("Display similar users")
+data = np.random.randint(1, 101, size=(10, 20))
+df2 = pd.DataFrame(data, columns=[f"col {i}" for i in range(20)])
