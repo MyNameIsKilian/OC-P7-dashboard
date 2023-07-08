@@ -27,23 +27,35 @@ go_button = st.button('Go')
 
 # Permettre de visualiser le score et l’interprétation de ce score pour chaque client de façon intelligible pour une personne non experte en data science
 if go_button :
-	with st.spinner(text='In progress'):
-		h5 = st.subheader("Resultats")
-		# faire la requête
-		# Envoi de la ligne sélectionnée à l'API pour prédiction
-		url = 'http://pitiprince.pythonanywhere.com'
-		# response = requests.post(url, json=data.loc[id_selected].to_dict())
-		response = requests.get(url)
+	with st.spinner(text='Chargement'):
+		
+		# row_df = row_df = pd.DataFrame([row_data], index=[id_selected])
+		# st.write(row_df)	
+		# st.dataframe(row_df)
 
-		# Affichage de la réponse de l'API
+		url = 'http://pitiprince.pythonanywhere.com/data'
+		
+		row_data = data.loc[id_selected].to_dict()
+		response = requests.post(url, json=row_data)
+		h5 = st.subheader("Resultats")
+		st.write(response)
+		st.write(response.text)
+
 		if response.status_code == 200:
-				prediction = response.json()['accuracy']
-				st.write('Acc du modèle :', prediction)
+				prediction = response.json()['body']
+				st.write('prediction:', prediction)
 		else:
 				st.write('Erreur lors de la requête à l\'API')
+				# st.write(response.json()['error'])
+		# if response.status_code == 200 and 'body' in response.json():
+		# prediction = response.text
+		# st.write('prediction:', prediction)
+		# 	# Faites quelque chose avec la prédiction
+		# # else:
+		# 	# st.write(response.json().get('error'))
 
-		st.text("Granted or Refused")
-		st.text("Score")
+		# st.text("Granted or Refused")
+		# st.text("Score")
 
 st.subheader("Display SHAP values")
 # st.line_chart(data.iloc[0,:])
