@@ -7,6 +7,8 @@ import json
 import matplotlib.pyplot as plt
 import streamlit.components.v1 as components
 
+np.__version__ = "1.23"
+
 TIMEOUT = (5, 30)
 # MAIN_COLUMNS = ['CODE_GENDER_M', 'FLAG_OWN_CAR', 'FLAG_OWN_REALTY', 'CNT_CHILDREN',
 #                 'NAME_FAMILY_STATUS_Married', 'NAME_INCOME_TYPE_Working',
