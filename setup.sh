@@ -1,1 +1,1 @@
-pip install numpy==1.23
+pip install -r requirements.txt

@@ -6,6 +6,10 @@ import shap
 import json
 import matplotlib.pyplot as plt
 import streamlit.components.v1 as components
+import os
+
+# Exécuter le script setup.sh pour installer les dépendances
+os.system("../setup.sh")
 
 np.__version__ = "1.23"
 
