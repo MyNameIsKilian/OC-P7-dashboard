@@ -6,12 +6,12 @@ import shap
 import json
 import matplotlib.pyplot as plt
 import streamlit.components.v1 as components
-import os
+# import os
 
 # Exécuter le script setup.sh pour installer les dépendances
-os.system("../setup.sh")
+# os.system("../setup.sh")
 
-np.__version__ = "1.23"
+# np.__version__ = "1.23"
 
 TIMEOUT = (5, 30)
 # MAIN_COLUMNS = ['CODE_GENDER_M', 'FLAG_OWN_CAR', 'FLAG_OWN_REALTY', 'CNT_CHILDREN',
@@ -212,6 +212,7 @@ if knn_button :
 		# Point à revoir pendant la session:
 		# - Les shap values (valeurs négatives + compréhension sort values)
 		# - Tips pour que tous les éléments du dashboard restent en place
+		# - Deploy dashboard en prod - ImportError: Numba needs NumPy 1.24 or less
 
 		# faire le lien github pythonanywhere  => webhook ?
 		# faire de la documentation
