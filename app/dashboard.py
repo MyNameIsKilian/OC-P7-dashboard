@@ -86,7 +86,6 @@ if id_selected:
 
 st.subheader("Lancer une simulation de crédit")
 go_button = st.button('🤖')
-st.write(go_button)
 if go_button :
 	with st.spinner(text='Chargement'):
 		st.subheader("Resultats")
