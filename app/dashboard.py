@@ -6,30 +6,12 @@ import shap
 import json
 import matplotlib.pyplot as plt
 import streamlit.components.v1 as components
-# import os
-
-# Exécuter le script setup.sh pour installer les dépendances
-# os.system("../setup.sh")
-
-# np.__version__ = "1.23"
 
 TIMEOUT = (5, 30)
-# MAIN_COLUMNS = ['CODE_GENDER_M', 'FLAG_OWN_CAR', 'FLAG_OWN_REALTY', 'CNT_CHILDREN',
-#                 'NAME_FAMILY_STATUS_Married', 'NAME_INCOME_TYPE_Working',
-#                 'AMT_INCOME_TOTAL', 'DAYS_BIRTH', 'DAYS_EMPLOYED']
-
 MAIN_COLUMNS = ['CNT_CHILDREN','APPS_EXT_SOURCE_MEAN', 'APPS_GOODS_CREDIT_RATIO',
                 'AMT_INCOME_TOTAL', 'DAYS_BIRTH', 'DAYS_EMPLOYED']
 
 API_URL = "https://kiliandatadev.pythonanywhere.com/"
-
-# class ShapObject:
-#     def __init__(self, base_values, data, values, feature_names, display_data):
-#         self.base_values = base_values # Single value
-#         self.data = data # Raw feature values for 1 row of data
-#         self.values = values # SHAP values for the same row of data
-#         self.feature_names = feature_names # Column names
-#         self.display_data = display_data
 
 def st_shap(plot, height=None):
     """ Create a shap html component """
@@ -44,9 +26,43 @@ def get_columns_mean():
  
 def get_columns_neighbors(cust_id):
     """ Get customers neighbors main columns mean values """
-    response = requests.get("https://kiliandatadev.pythonanywhere.com/columns/neighbors/id/" + str(cust_id))
+    response = requests.get(API_URL + "columns/neighbors/id/" + str(cust_id))
     content = response.json()
     return pd.Series(content)
+
+def make_prediction(row_data):
+	""" Get prediction of the model and display infos """
+	response = requests.post(API_URL + "prediction", json=row_data)
+	if response.status_code == 200:
+		prediction = response.json()["body"][0]
+		proba_authorized = prediction[0]
+		result = "Crédit autorisé" if proba_authorized > 0.5 else "Crédit refusé"
+		st.text("Les crédits sont autorisés si votre score client est supérieur à 50 points")
+		st.text("Score : " + str(round(proba_authorized * 100, 1)) + "/100 points")
+		st.text(result)
+	else:
+		st.write('Erreur lors de la requête à l\'API')
+
+def get_shap_values(row_data):
+	""" Get customer's shap values and display pie chart of top3 most important features"""
+	response = requests.post(API_URL + "shap-values", json=row_data)
+	if response.status_code == 200:
+		result = response.json()["body"]
+		shap_values_cleaned = np.array(result["shap_values"])
+		
+		df_feature_importance = pd.DataFrame(data=shap_values_cleaned[0], index=[id_selected], columns=data.columns)
+		df_feature_importance_abs = df_feature_importance.abs()
+		df_user_feat_imp = df_feature_importance_abs.iloc[0, :]
+		top3_features = df_user_feat_imp.sort_values(ascending=False).head(3)
+		
+		st.text("Ces 3 variables participent le plus à la décision d'attribution du crédit")
+		st.text("Voici leur répartition en fonction de leur importance :")
+		fig = plt.Figure(figsize=(4, 4))
+		ax = fig.subplots()
+		ax.pie(top3_features, labels = top3_features.index, autopct='%.0f%%', colors=['lightgreen', 'skyblue', 'orange'], shadow=True)
+		st.pyplot(fig)
+	else:
+		st.write('Erreur lors de la requête à l\'API')
 
 st.title('Prêt à dépenser : Scoring Crédit')
 st.image('./assets/images/logo-app.png', width=250)
@@ -65,58 +81,33 @@ df_filtre = data.loc[id_selected, colonnes_selectionnees] if colonnes_selectionn
 
 if id_selected:
 	st.write('ID client sélectionné :', id_selected)
+	row_data = data.loc[id_selected].to_dict()
 	st.dataframe(df_filtre)
 
 st.subheader("Lancer une simulation de crédit")
-go_button = st.button('Go')
-
+go_button = st.button('🤖')
+st.write(go_button)
 if go_button :
 	with st.spinner(text='Chargement'):
-		shap.initjs()
-		url = 'https://kiliandatadev.pythonanywhere.com/prediction'
-		
-		row_data = data.loc[id_selected].to_dict()
-		response = requests.post(url, json=row_data)
-		h5 = st.subheader("Resultats")
-		# 0 il rembourse 1 il rembourse pas 
+		st.subheader("Resultats")
+		make_prediction(row_data)
 
-		if response.status_code == 200:
-				prediction = response.json()["body"][0]
-				proba_authorized = prediction[0]
-				result = "Crédit autorisé" if proba_authorized > 0.5 else "Crédit refusé"
-				st.text("Les crédits sont autorisés si votre score client est supérieur à 50 points")
-				st.text("Score : " + str(round(proba_authorized * 100,1)) + "/100 points")
-				st.text(result)
-		else:
-				st.write('Erreur lors de la requête à l\'API')
-
-st.subheader("En savoir plus sur ce résulat")
-shap_button = st.button("Calculer les SHAP values")
-if shap_button :
-	with st.spinner(text='Chargement'):
-		url = 'https://kiliandatadev.pythonanywhere.com/shap-values'
-		row_data = data.loc[id_selected].to_dict()
-		response = requests.post(url, json=row_data)
-		h5 = st.subheader("Resultats")
-		
-		if response.status_code == 200:
-			result = response.json()["body"]
-			expected_value = result["expected_value"]
-			shap_values_cleaned = np.array(result["shap_values"])
-			using_shap_plots = False
-			if using_shap_plots:
-				shap_values_full = json.loads(result["shap_values_full"])
-				shap_values = shap_values_full["values"]
-				st.write(np.shape(expected_value))
-				st.write(np.shape(shap_values_cleaned))
-				st.write('shape:', np.array(shap_values_cleaned).shape)
-				st.write(np.shape(shap_values[0][0]))
-				st.write(np.shape(data))
-				st.write(shap_values)
-				st.write(shap_values_cleaned)
-				st.write('data:', data.iloc[0].shape)
-				st.write('shap:', shap_values_cleaned)
-				st.write('expec:', expected_value)
+		st.subheader("En savoir plus sur ce résulat")
+		get_shap_values(row_data)
+		# using_shap_plots = False
+		# if using_shap_plots:
+				# shap_values_full = json.loads(result["shap_values_full"])
+				# shap_values = shap_values_full["values"]
+				# st.write(np.shape(expected_value))
+				# st.write(np.shape(shap_values_cleaned))
+				# st.write('shape:', np.array(shap_values_cleaned).shape)
+				# st.write(np.shape(shap_values[0][0]))
+				# st.write(np.shape(data))
+				# st.write(shap_values)
+				# st.write(shap_values_cleaned)
+				# st.write('data:', data.iloc[0].shape)
+				# st.write('shap:', shap_values_cleaned)
+				# st.write('expec:', expected_value)
 
 				# shap_object = ShapObject(base_values = expected_value[1],
 				#          values = shap_values_cleaned[1][0,:],
@@ -171,51 +162,14 @@ if shap_button :
 
 				# shap.plots.bar(shap_values)
 
-			df_feature_importance_class_0 = pd.DataFrame(data=shap_values_cleaned[0], index=[id_selected], columns=data.columns)
-			df_user_feat_imp = df_feature_importance_class_0.iloc[0, :]
-			
-			top3_class_1 = df_user_feat_imp.sort_values(ascending=False).head(3)
-			top3_class_0 = df_user_feat_imp.sort_values(ascending=True).head(3)
-			# st.write(top3_class_0)
-			# st.write(top3_class_1)
-			
-			col1, col2 = st.columns(2)
-			with col1:
-				fig = plt.Figure(figsize=(4, 4))
-				ax = fig.subplots()
-				ax.pie(top3_class_0, labels = top3_class_0.index, autopct='%.0f%%')
-				st.pyplot(fig)
-			# with col2:
-			# 	fig = plt.Figure(figsize=(4, 4))
-			# 	ax = fig.subplots()
-			# 	ax.pie(top3_class_1, labels = top3_class_1.index, autopct='%.0f%%')
-			# 	st.pyplot(fig)
-		else:
-				st.write('Erreur lors de la requête à l\'API')
-
-st.subheader("Comparer avec des clients similaires")
-knn_button = st.button('Rechercher')
-if knn_button :
-	with st.spinner(text='Chargement'):
+		st.subheader("Comparer avec des clients similaires")
 		customer_df = data[MAIN_COLUMNS].loc[id_selected]
 		neighbors_df = get_columns_neighbors(iloc_id_selected).rename("Moyennes des clients similaires")
 		mean_df = get_columns_mean().rename("Moyennes de tous les clients")
 		concat_df = pd.concat([customer_df, neighbors_df, mean_df], axis=1)
 		st.dataframe(concat_df)
-		# selected_column = st.selectbox('Choisir une colonne', MAIN_COLUMNS)
 		for col in MAIN_COLUMNS:
 			df_for_chart = concat_df.loc[[col]] 
 			df_for_chart = df_for_chart.transpose()
 			df_for_chart.columns = [col]
 			st.bar_chart(df_for_chart)
-
-		# Point à revoir pendant la session:
-		# - Les shap values (valeurs négatives + compréhension sort values)
-		# - Tips pour que tous les éléments du dashboard restent en place
-		# - Deploy dashboard en prod - ImportError: Numba needs NumPy 1.24 or less
-
-		# faire le lien github pythonanywhere  => webhook ?
-		# faire de la documentation
-		# commencer support de présentation
-
-
